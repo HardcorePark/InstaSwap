@@ -1,6 +1,7 @@
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "2.03"
+#define PLUGIN_VERSION "2.11"
+#define PLUGIN_PREFIX "[\x06InstaSwap\x01]"
 
 #include <sourcemod>
 
@@ -13,46 +14,89 @@ public Plugin myinfo =
 	url = "www.tangoworldwide.net",
 };
 
+bool g_CTLocked = false;
+
 public void OnPluginStart()
 {
 	RegConsoleCmd("jointeam", Event_Join, "", 0);
+	RegAdminCmd("sm_lockct", Command_Lockct, ADMFLAG_CUSTOM1);
 }
 
 public Action Event_Join(client, args)
 {
 	if(IsValidPlayer(client))
 	{
-		char g_TeamArg[4];
-		GetCmdArg(1, g_TeamArg, sizeof(g_TeamArg));
+		char l_TeamArg[4];
+		GetCmdArg(1, l_TeamArg, sizeof(l_TeamArg));
+		int l_TeamNum = StringToInt(l_TeamArg);
 		
-		int g_TeamNum = StringToInt(g_TeamArg);
-		ChangeClientTeam(client, g_TeamNum);
-		
-		char g_PlayerName[MAX_NAME_LENGTH];
-		GetClientName(client, g_PlayerName, sizeof(g_PlayerName));
-		
-		char g_TeamName[64];
-		if(g_TeamNum == 1)
+		bool isAdminOverride = false;
+		AdminId clientAdminId = GetUserAdmin(client);
+		if (clientAdminId != INVALID_ADMIN_ID)
 		{
-			Format(g_TeamName, sizeof(g_TeamName), "Spec");
-		}
-		else if(g_TeamNum == 2)
-		{
-			Format(g_TeamName, sizeof(g_TeamName), "T");
-		}
-		else
-		{
-			Format(g_TeamName, sizeof(g_TeamName), "CT");
-		}
-		
-		for (int i = 1; i <= MaxClients; i++)
-		{
-			if(IsValidPlayer(i))
+			if (GetAdminFlag(clientAdminId, Admin_Ban))
 			{
-				PrintToConsole(i, "[InstaSwap] Player %s - Team: %s", g_PlayerName, g_TeamName);
+				isAdminOverride = true;
+			}
+		}
+		
+		if (l_TeamNum == 3 && g_CTLocked == true && isAdminOverride == false)
+		{
+			PrintToChat(client, "%s You have been denied \x10CT \x01due to there being a \x07CT-Lock!", PLUGIN_PREFIX);
+		}
+		else 
+		{
+			char l_TeamName[64];
+			char l_PlayerName[64];
+			GetClientName(client, l_PlayerName, sizeof(l_PlayerName));
+			
+			if(l_TeamNum == 1)
+			{
+				Format(l_TeamName, sizeof(l_TeamName), "Spec");
+			}
+			else if(l_TeamNum == 2)
+			{
+				Format(l_TeamName, sizeof(l_TeamName), "T");
+			}
+			else
+			{
+				Format(l_TeamName, sizeof(l_TeamName), "CT");
+			}
+			
+			ChangeClientTeam(client, l_TeamNum);
+			
+			for (int i = 1; i <= MaxClients; i++)
+			{
+				if(IsValidPlayer(i))
+				{
+					PrintToConsole(i, "[InstaSwap] Player %s - Team: %s", l_PlayerName, l_TeamName);
+				}
 			}
 		}
 	}
+	return Plugin_Handled;
+}
+
+public Action Command_Lockct(client, args)
+{
+	if (args != 0)
+	{
+		PrintToChat(client, "%s Too many Arguements!", PLUGIN_PREFIX);
+		return Plugin_Handled;
+	}
+	
+	if (g_CTLocked == false)
+	{
+		PrintToChat(client, "%s \x07CT-Lock \x01has now been activated!", PLUGIN_PREFIX);
+		g_CTLocked = true;
+	} 
+	else if (g_CTLocked == true)
+	{
+		PrintToChat(client, "%s \x07CT-Lock \x01has now been disabled!", PLUGIN_PREFIX);
+		g_CTLocked = false;
+	}
+	
+	return Plugin_Handled;
 }
 
 stock bool IsValidPlayer(int client, bool alive = false)
