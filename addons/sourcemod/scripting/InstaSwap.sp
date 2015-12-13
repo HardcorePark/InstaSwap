@@ -1,6 +1,6 @@
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "2.14"
+#define PLUGIN_VERSION "2.15"
 #define PLUGIN_PREFIX "[\x06InstaSwap\x01]"
 
 #include <sourcemod>
@@ -121,12 +121,15 @@ public CheckPlayers()
 	
 	for (int i = 0; i <= MaxClients; i++)
 	{
-		AdminId l_Player = GetUserAdmin(i);
-		if (l_Player != INVALID_ADMIN_ID)
+		if (IsValidPlayer(i))
 		{
-			if (GetAdminFlag(l_Player, Admin_Custom1))
+			AdminId l_Player = GetUserAdmin(i);
+			if (l_Player != INVALID_ADMIN_ID)
 			{
-				g_CurrentAdmins++;
+				if (GetAdminFlag(l_Player, Admin_Custom1))
+				{
+					g_CurrentAdmins++;
+				}
 			}
 		}
 	}
